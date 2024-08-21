@@ -1,0 +1,16 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: ${{ values.component_id }}-gateway
+  namespace: ${{ values.component_id }}-dev
+spec:
+  host: ${{ values.component_id }}-gateway-${{ values.component_id }}-dev.apps.cluster-h6fh7.sandbox550.opentlc.com
+  to:
+    kind: Service
+    name: ${{ values.component_id }}-dev-gateway
+    weight: 100
+  port:
+    targetPort: http2
+  tls:
+    termination: edge
+  wildcardPolicy: None

@@ -1,0 +1,43 @@
+# Azure Pipeline
+      - package: '@parfuemerie-douglas/scaffolder-backend-module-azure-pipelines-dynamic@1.2.0'
+        integrity: '<<SHA Integrity >>'
+        disabled: false
+      - package: ./dynamic-plugins/dist/backstage-plugin-scaffolder-backend-module-azure-dynamic
+      - package: ./dynamic-plugins/dist/backstage-plugin-azure-devops-backend-dynamic
+        disabled: false
+        pluginConfig:
+          azureDevOps:
+            host: dev.azure.com
+            token: ${AZURE_PERSONAL_ACCESS_TOKEN}
+            organization: ${AZURE_ORG_NAME}
+      - package: ./dynamic-plugins/dist/backstage-plugin-azure-devops
+        disabled: false
+        pluginConfig:
+          dynamicPlugins:
+            frontend:
+              backstage.plugin-azure-devops:
+                mountPoints:
+                  - mountPoint: entity.page.ci/cards
+                    importName: EntityAzurePipelinesContent
+                    config:
+                      layout:
+                        gridColumn: "1 / -1"
+                      if:
+                        allOf:
+                          - isAzureDevOpsAvailable
+                  - mountPoint: entity.page.overview/cards
+                    importName: EntityAzureReadmeCard
+                    config:
+                      layout:
+                        gridColumn: "1 / -1"
+                      if:
+                        allOf:
+                          - isAzureDevOpsAvailable              
+                  - mountPoint: entity.page.pull-requests/cards
+                    importName: EntityAzurePullRequestsContent
+                    config:
+                      layout:
+                        gridColumn: "1 / -1"
+                      if:
+                        allOf:
+                          - isAzureDevOpsAvailable  

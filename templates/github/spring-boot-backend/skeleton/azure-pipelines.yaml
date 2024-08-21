@@ -1,0 +1,91 @@
+# Maven
+# Build your Java project and run tests with Apache Maven.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+name: azure-${{ values.repoName }}-pipeline
+
+trigger:
+- main
+
+resources:
+ repositories:
+   - repository: ${{ values.repoName }}-gitops # Manifest Repository
+     type: git
+     name: "Developer Hub Demo/${{ values.repoName }}-gitops"
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  GIT_SHA: $(Build.SourceVersion)
+  GIT_BRANCH: $(Build.SourceBranchName)  
+stages:
+  - stage: CI
+    displayName: CI Stage
+    jobs:
+      - job: build
+        displayName: build
+        steps:
+        
+        - task: Maven@3
+          inputs:
+            mavenPomFile: 'pom.xml'
+            mavenOptions: '-Xmx3072m'
+            javaHomeOption: 'JDKVersion'
+            jdkVersionOption: '11'
+            jdkArchitectureOption: 'x64'
+            publishJUnitResults: true
+            testResultsFiles: '**/surefire-reports/TEST-*.xml'
+            goals: 'package'
+
+        - task: Docker@2
+          displayName: Login to Quay
+          inputs:
+            containerRegistry: 'Quay Registry'
+            command: 'login'
+
+        - task: Docker@2
+          displayName: Build and Push
+          inputs:
+            containerRegistry: 'Quay Registry'
+            repository: 'redhat_na_ssa/${{ values.repoName }}'
+            command: 'buildAndPush'
+            Dockerfile: '**/Dockerfile'
+            tags: $(GIT_SHA)
+  - stage: CD
+    displayName: Update the Gitops Repo
+    jobs:
+      - job: deploy
+        displayName: Update Gitops Repo
+        steps:
+          - checkout: ${{ values.repoName }}-gitops
+            displayName: Checkout Gitops Repository
+            persistCredentials: true
+
+          - task: Bash@3
+            displayName: Update image SHA signature
+            inputs:
+              targetType: inline
+              script: |
+                   sed -e 's/\(.*tag:\) \(.*\)/\1 $(GIT_SHA)/g' ./helm/app/values.yaml > ./helm/app/values.yaml.temp
+                   rm ./helm/app/values.yaml
+                   mv ./helm/app/values.yaml.temp ./helm/app/values.yaml
+          - task: Bash@3
+            displayName: Configure Git
+            inputs:
+              targetType: inline
+              script: |       
+                  git config --local user.email "73549783+arunhari82@users.noreply.github.com"
+                  git config --local user.name "arunhari82"
+
+          - task: Bash@3
+            displayName: Commit and Push Gitops
+            inputs:
+              targetType: inline
+              script: |
+                  git add ./helm/app/values.yaml    
+                  git commit -m 'Updating Git Repo with image SHA : $(GIT_SHA)'
+                  git push origin HEAD:main  
+    
+

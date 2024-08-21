@@ -1,0 +1,8 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: dynamic-plugins-npmrc
+  namespace: backstage
+data:
+  .npmrc: <<BASE64 Encoded .npmrc file contents>>
+type: Opaque

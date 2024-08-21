@@ -1,0 +1,10 @@
+; begin auth token
+//pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/registry/:username=<<OrgName>>
+//pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/registry/:_password=<<BASE64 Encoded PAT>>
+//pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/registry/:email=<<email address>>
+//pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/:username=<<OrgName>>
+//pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/:_password=<<BASE64 Encoded PAT>>
+//pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/:email=<<email address>>
+; end auth token
+@<<OrgName>>:registry=https://pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/registry/
+@parfuemerie-douglas:registry=https://pkgs.dev.azure.com/<<OrgName>>/_packaging/mynpmregsitry/npm/registry/% 

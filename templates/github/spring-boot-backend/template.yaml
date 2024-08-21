@@ -1,0 +1,291 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: azure-spring-boot-backend-template
+  title: Azure Devops Spring Boot With ServiceMesh template
+  description: Create a starter Spring Boot backend application with a Azure CI pipeline, Argo CD Gitops, Service Mesh 
+  tags:
+    - service-mesh
+    - spring-boot
+    - java
+    - maven
+    - azure-pipelines-ci
+    - argocd-gitops
+    - azure-repos
+spec:
+  owner: user:user1
+  system: janus-idp
+  type: service
+
+  parameters:
+    - title: Provide information about the new component
+      required:
+        - componentId
+        - orgName
+        - repoName
+        - owner
+        - system
+        - port
+      properties:
+        componentId:
+          title: Name
+          type: string
+          description: Unique name for this app component
+          default: my-springboot-app
+          ui:field: EntityNamePicker
+        orgName:
+          title: Azure Organization Name
+          type: string
+        repoName:
+          title: Azure Repository Name
+          description: Unique name for this app Azure repository
+          default: my-springboot-app
+          type: string
+        description:
+          title: Description
+          type: string
+          description: Help others understand what this component is for
+        owner:
+          title: Git Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - Group
+                - User
+        system:
+          title: Backstage System Entity
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - System
+        port:
+          title: Port
+          type: number
+          default: 8080
+          description: Override the port exposed for the application
+    - title: Provide information about the Java metadata
+      required:
+        - groupId
+        - artifactId
+        - javaPackageName
+      properties:
+        groupId:
+          title: Group ID
+          type: string
+          default: com.redhat.com
+          description: Maven Group ID eg (io.janus)
+        artifactId:
+          title: Artifact ID
+          type: string
+          default: my-springboot-app
+          description: Maven Artifact ID
+        javaPackageName:
+          title: Java Package Namespace
+          type: string
+          default: com/redhat/demos
+          description: Name for the Java Package (ensure to use the / character as this is used for folder structure) should match Group ID and Artifact ID
+
+    - title: Provide information about the CI method
+      required:
+        - ci
+        # - token
+      properties:
+        # token:
+        #   title: Azure Personal Access Token to Connect to Repo
+        #   type: string     
+        ci:
+          title: Select a CI method
+          type: string
+          description: This action will create a CI pipeline for your application based on chosen method
+          default: ../../../skeletons/azure/
+          enum:
+            - ../../../skeletons/tekton/
+            - ../../../skeletons/azure/
+          enumNames:
+            - Tekton
+            - Azure
+      dependencies:
+        ci:
+          oneOf:
+            - properties:
+                # Show no extra properties when GitHub Actions is selected
+                ci:
+                  const: ../../../skeletons/azure/
+            - required:
+                - image_registry
+                - image_host
+                - image_organization
+                - cluster_domain_url
+                - namespace
+              properties:
+                cluster_domain_url:
+                  title: Cluster Domain Url
+                  type: string
+                  description: The Cluster Domain URL where the aplication will be deployed to (usually starts with '.apps')
+                  default: ".apps.cluster-6kknq.6kknq.sandbox63.opentlc.com"
+                namespace:
+                  title: Project Namespace
+                  type: string
+                  description: The Project Namespace for deploying resources to the cluster
+                  default: my-springboot-app
+                ci:
+                  const: ../../../skeletons/tekton/
+                image_registry:
+                  title: Image Registry
+                  type: string
+                  enum:
+                    - Openshift
+                    - Quay
+              dependencies:
+                image_registry:
+                  oneOf:
+                    - properties:
+                        image_registry:
+                          enum:
+                            - Openshift
+                        image_host:
+                          title: Image Host
+                          type: string
+                          description: Host for storing image
+                          default: image-registry.openshift-image-registry.svc:5000
+                    - properties:
+                        image_registry:
+                          enum:
+                            - Quay
+                        image_host:
+                          title: Image Host
+                          type: string
+                          description: Host for storing image
+                          default: quay.io
+                        image_organization:
+                          title: Registry Organization
+                          type: string
+                          description: Name of the Quay Organization
+                          default: 'redhat_na_ssa'
+
+  steps:
+    - id: sourceCodeTemplate
+      name: Generating the Source Code Component
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          orgName: ${{ parameters.orgName }}
+          repoName: ${{ parameters.repoName }}
+          description: ${{ parameters.description }}
+          port: ${{ parameters.port }}
+          groupId: ${{ parameters.groupId }}
+          artifactId: ${{ parameters.artifactId }}
+          javaPackageName: ${{ parameters.javaPackageName }}
+          sourceControl: dev.azure.com # If using a Hosted Enterprise GithHub replace with your internal domain
+
+    - id: catalogTemplate
+      name: Generating the Catalog Info Component
+      action: fetch:template
+      input:
+        url: ../../../skeletons/catalog-info/
+        values:
+          name: ${{ parameters.componentId }}
+          orgName: ${{ parameters.orgName }}
+          repoName: ${{ parameters.repoName }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          applicationType: service
+          description: ${{ parameters.description }}
+          namespace: ${{ parameters.namespace }}-dev
+          ci: ${{ parameters.ci }}
+          artifactId: ${{ parameters.artifactId }}
+          sourceControl: dev.azure.com # If using a Hosted Enterprise GithHub replace with your internal domain
+          imageRegistry: ${{ parameters.image_registry }}
+          imageOrganization: ${{ parameters.image_organization }}
+          imageName: ${{ parameters.artifactId }}
+          clusterDomainUrl: ${{ parameters.cluster_domain_url }}
+
+    - id: publish
+      name: Publishing Code Repo
+      action: publish:azure
+      input:
+        repoUrl: dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        gitAuthorName: "Arun Hariharan"
+        gitAuthorEmail: "anattama@redhat.com"
+
+    - id: createPipeline
+      name: Configuring Azure Pipeline
+      action: azure:pipeline:create
+      input:
+        organization: ${{ parameters.orgName }}
+        project: "Developer Hub Demo"
+        folder: "/"
+        name: "azure-${{ parameters.repoName }}-pipeline"
+        repositoryId: ${{ steps.publish.output.repositoryId }}
+        repositoryName: ${{ parameters.repoName }}
+
+    - id: register
+      name: Registering the Catalog Info Component
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: template-gitops-deployment
+      name: Generating Deployment Resources
+      action: fetch:template
+      input:
+        url: ./manifests
+        copyWithoutTemplating: []
+        values:
+          component_id: ${{ parameters.componentId }}
+          destination: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
+          repository_name: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}
+          git_owner: ${{ parameters.orgName }}
+          cluster: ${{ parameters.cluster_domain_url }}
+          namespace: ${{ parameters.namespace }}-dev
+          image_registry: ${{ parameters.image_registry }}
+          image_host: ${{ parameters.image_host }}
+          image_organization: ${{ parameters.image_organization }}
+          image_name: ${{ parameters.artifactId }}
+          port: ${{ parameters.port }}
+          token: ${{ parameters.token }}
+        targetPath: ./tenant-gitops
+
+    - id: publish-gitops
+      name: Publishing to Resource Repository
+      action: publish:azure
+      input:
+        repoUrl: dev.azure.com?repo=${{ parameters.repoName }}-gitops&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        gitAuthorName: "Arun Hariharan"
+        gitAuthorEmail: "anattama@redhat.com"
+        sourcePath: ./tenant-gitops
+       
+
+    - id: create-argocd-resources
+      name: Create ArgoCD Resources
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.artifactId }}-bootstrap
+        argoInstance: main
+        namespace: janus-argocd
+        repoUrl:  https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
+        path: "argocd/"
+
+  output:
+    links:
+      - title: Open the Source Code Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open the Catalog Info Component
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+    text:
+      - title: Additional information
+        content: |
+          #Required manual steps
+          * Go to `${{ parameters.image_host }}` and create a new image repository in your Container Registry named `${{ parameters.artifactId }}` under the `${{ parameters.image_organization }}` organization.
+          > If created as private repo remember to grant permissions to the registry user supposed to push/pull images from this repository.
