@@ -64,7 +64,7 @@ spec:
           title: Package Name
           default: com.pepsico1
           type: string
-          description: Name for the package
+          description: Name the package
         description:
           title: Description
           type: string
