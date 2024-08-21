@@ -1,7 +1,7 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: pepsico-template
+  name: pepsico-template1
   title: Pepsico Azure Devops template
   description: Create a starter application with Azure CI pipeline, Argo CD Gitops
   tags:
@@ -114,7 +114,7 @@ spec:
         artifactId:
           title: Artifact ID
           type: string
-          default: my-springboot-app
+          default: my-pepsi-app
           description: Maven Artifact ID
         javaPackageName:
           title: Java Package Namespace
@@ -160,7 +160,7 @@ spec:
                   title: Project Namespace
                   type: string
                   description: The Project Namespace for deploying resources to the cluster
-                  default: my-springboot-app
+                  default: my-pepsi-app
                 ci:
                   const: ../../../skeletons/tekton/
                 image_registry:
