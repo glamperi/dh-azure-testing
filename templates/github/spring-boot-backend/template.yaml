@@ -33,7 +33,7 @@ spec:
           title: Name
           type: string
           description: Unique name for this app component
-          default: my-springboot-app
+          default: my-pepsico-app
           ui:field: EntityNamePicker
         approvalcode:
           title: Service Now Approval Code
@@ -44,7 +44,7 @@ spec:
         repoName:
           title: Azure Repository Name
           description: Unique name for this app Azure repository
-          default: my-springboot-app
+          default: my-pepsico-app
           type: string
         description:
           title: Description
@@ -53,16 +53,16 @@ spec:
         artifact_id:
           title: Artifact Id
           type: string
-          default: pepsico-app
+          default: pepsico1-app
           description: Maven Artifact Id
         group_id:
           title: Group Id
           type: string
-          default: pepsico-mvn
+          default: pepsico1-mvn
           description: Maven Group Id
         java_package_name:
           title: Package Name
-          default: com.pepsico
+          default: com.pepsico1
           type: string
           description: Name for the package. eg (com.pepsico.blah)
         description:
