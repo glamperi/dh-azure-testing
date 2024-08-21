@@ -1,0 +1,47 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: pepsico-cloud-market-place
+  title: Pepsico Cloud Market Place 1.0
+  description: Pepsico CMP Flow for Approval - Create ServiceNow Ticket
+  tags:
+    - service-now
+    - pepsico
+    - cloud-market-place
+spec:
+  owner: rhdh
+  type: service
+  
+
+  parameters:
+    - title: Provide Name Entry for snow table 
+      required:
+        - employeename
+      properties:
+        employeename:
+          title: Requester Name
+          type: string  
+        department:
+          title: Requester's Department
+          type: string  
+        project:
+          title: Requester's Project
+          type: string  
+  steps:
+    - id: snowcreate
+      name: Snow
+      action: servicenow:now:table:createRecord
+      input:
+        tableName: u_employeename
+        requestBody: {
+          u_employeename: "${{ parameters.employeename }}",
+          u_department: "${{ parameters.department }}",
+          u_project: "${{ parameters.project }}"
+        }
+        
+  output:
+    text:
+    - title: Name Field
+      content: Entered Name "${{ parameters.employeename }}"
+    - title: SysID
+      content: Create record with this System ID "${{ steps.snowcreate.output.result.sys_id }}"
