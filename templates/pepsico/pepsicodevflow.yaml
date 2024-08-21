@@ -1,7 +1,7 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: pepsico-dev-template
+  name: pepsico-dev-template2
   title: Pepsico Dev Flow template 1.2
   description: The Pepsico Dev Flow 2
   tags:
